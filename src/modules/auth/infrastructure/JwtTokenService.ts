@@ -1,14 +1,8 @@
 import * as jwt from 'jsonwebtoken';
 import { User } from '../domain/User';
+import { TokenService, TokenPayload } from '../domain/TokenService';
 
-export interface JwtPayload {
-  userId: string;
-  email: string;
-  iat?: number;
-  exp?: number;
-}
-
-export class JwtTokenService {
+export class JwtTokenService implements TokenService {
   private readonly secretKey: string;
   private readonly expiresIn: string;
 
@@ -32,7 +26,7 @@ export class JwtTokenService {
     }
   }
 
-  verifyToken(token: string): Promise<JwtPayload> {
+  verifyToken(token: string): Promise<TokenPayload> {
     return new Promise((resolve, reject) => {
       try {
         jwt.verify(token, this.secretKey, (err: any, decoded: any) => {
@@ -41,7 +35,7 @@ export class JwtTokenService {
             return;
           }
 
-          const payload = decoded as JwtPayload;
+          const payload = decoded as TokenPayload;
           resolve(payload);
         });
       } catch (error) {
@@ -70,7 +64,7 @@ export class JwtTokenService {
 
   isTokenExpired(token: string): boolean {
     try {
-      const decoded = jwt.decode(token) as JwtPayload;
+      const decoded = jwt.decode(token) as TokenPayload;
       
       if (!decoded || !decoded.exp) {
         return true;
@@ -85,7 +79,7 @@ export class JwtTokenService {
 
   refreshToken(token: string): string {
     try {
-      const decoded = jwt.decode(token) as JwtPayload;
+      const decoded = jwt.decode(token) as TokenPayload;
       
       if (!decoded) {
         throw new Error('Invalid token for refresh');

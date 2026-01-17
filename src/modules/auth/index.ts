@@ -9,9 +9,13 @@ export { LoginUser } from './application/LoginUser';
 export { User } from './domain/User';
 export type { UserRepository } from './domain/UserRepository';
 export type { PasswordHasher } from './domain/PasswordHasher';
+export type { TokenService, TokenPayload } from './domain/TokenService';
+export type { IdGenerator } from './domain/IdGenerator';
+export { ValidationService } from './domain/ValidationService';
 
 // Infrastructure Layer
 export { AuthController } from './infrastructure/AuthController';
 export { PrismaUserRepository } from './infrastructure/PrismaUserRepository';
 export { JwtTokenService } from './infrastructure/JwtTokenService';
 export { BcryptPasswordHasher } from './infrastructure/BcryptPasswordHasher';
+export { DefaultIdGenerator } from './infrastructure/IdGeneratorImpl';

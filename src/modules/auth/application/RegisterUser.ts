@@ -1,6 +1,8 @@
 import { User } from '../domain/User';
 import { UserRepository } from '../domain/UserRepository';
 import { PasswordHasher } from '../domain/PasswordHasher';
+import { IdGenerator } from '../domain/IdGenerator';
+import { ValidationService } from '../domain/ValidationService';
 
 export interface RegisterUserRequest {
   email: string;
@@ -23,12 +25,49 @@ export interface RegisterUserResponse {
 export class RegisterUser {
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly passwordHasher: PasswordHasher
+    private readonly passwordHasher: PasswordHasher,
+    private readonly idGenerator: IdGenerator
   ) {}
 
   async execute(request: RegisterUserRequest): Promise<RegisterUserResponse> {
     try {
-      // Validar que el email no exista
+      // Validar email
+      const emailValidation = ValidationService.validateEmail(request.email);
+      if (!emailValidation.isValid) {
+        return {
+          success: false,
+          message: emailValidation.error!
+        };
+      }
+
+      // Validar contraseña
+      const passwordValidation = ValidationService.validatePassword(request.password);
+      if (!passwordValidation.isValid) {
+        return {
+          success: false,
+          message: passwordValidation.error!
+        };
+      }
+
+      // Validar firstName
+      const firstNameValidation = ValidationService.validateName(request.firstName, 'First name');
+      if (!firstNameValidation.isValid) {
+        return {
+          success: false,
+          message: firstNameValidation.error!
+        };
+      }
+
+      // Validar lastName
+      const lastNameValidation = ValidationService.validateName(request.lastName, 'Last name');
+      if (!lastNameValidation.isValid) {
+        return {
+          success: false,
+          message: lastNameValidation.error!
+        };
+      }
+
+      // Verificar que el email no exista
       const existingUser = await this.userRepository.findByEmail(request.email);
       if (existingUser) {
         return {
@@ -37,28 +76,15 @@ export class RegisterUser {
         };
       }
 
-      // Validar formato de email
-      if (!this.isValidEmail(request.email)) {
-        return {
-          success: false,
-          message: 'Invalid email format'
-        };
-      }
-
-      // Validar contraseña
-      if (!this.isValidPassword(request.password)) {
-        return {
-          success: false,
-          message: 'Password must be at least 8 characters long'
-        };
-      }
-
       // Hash de la contraseña
       const hashedPassword = await this.passwordHasher.hashPassword(request.password);
 
+      // Generar ID único
+      const userId = this.idGenerator.generateId();
+
       // Crear nuevo usuario
       const newUser = new User(
-        crypto.randomUUID(),
+        userId,
         request.email,
         hashedPassword,
         request.firstName,
@@ -86,14 +112,5 @@ export class RegisterUser {
         message: 'Internal server error'
       };
     }
-  }
-
-  private isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  }
-
-  private isValidPassword(password: string): boolean {
-    return password.length >= 8;
   }
 }

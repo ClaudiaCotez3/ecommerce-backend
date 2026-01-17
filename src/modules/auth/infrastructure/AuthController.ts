@@ -1,10 +1,11 @@
-import {  Post, Body, HttpStatus, Res, Get } from '@nestjs/common';
+import { Controller, Post, Body, HttpStatus, Res, Get } from '@nestjs/common';
 import type { Response } from 'express';
 import { RegisterUser } from '../application/RegisterUser';
 import type { RegisterUserRequest } from '../application/RegisterUser';
 import { LoginUser } from '../application/LoginUser';
 import type { LoginUserRequest } from '../application/LoginUser';
 
+@Controller('auth')
 export class AuthController {
   constructor(
     private readonly registerUser: RegisterUser,

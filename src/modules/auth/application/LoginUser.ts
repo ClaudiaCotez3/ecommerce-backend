@@ -1,6 +1,8 @@
+import { User } from '../domain/User';
 import { UserRepository } from '../domain/UserRepository';
 import { PasswordHasher } from '../domain/PasswordHasher';
-import { JwtTokenService } from '../infrastructure/JwtTokenService';
+import { TokenService } from '../domain/TokenService';
+import { ValidationService } from '../domain/ValidationService';
 
 export interface LoginUserRequest {
   email: string;
@@ -23,16 +25,17 @@ export class LoginUser {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly passwordHasher: PasswordHasher,
-    private readonly tokenService: JwtTokenService
+    private readonly tokenService: TokenService
   ) {}
 
   async execute(request: LoginUserRequest): Promise<LoginUserResponse> {
     try {
       // Validar formato de email
-      if (!this.isValidEmail(request.email)) {
+      const emailValidation = ValidationService.validateEmail(request.email);
+      if (!emailValidation.isValid) {
         return {
           success: false,
-          message: 'Invalid email format'
+          message: 'Invalid credentials'  // No revelar detalles específicos por seguridad
         };
       }
 
@@ -74,10 +77,5 @@ export class LoginUser {
         message: 'Internal server error'
       };
     }
-  }
-
-  private isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
   }
 }
