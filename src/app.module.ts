@@ -6,6 +6,7 @@ import { ProductsModule } from './modules/products/products.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ProductVariantsModule } from './modules/product-variants/product-variants.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
+import { OrdersModule } from './modules/orders/orders.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
     CategoriesModule,
     ProductVariantsModule,
     InventoryModule,
+    OrdersModule,
   ],
   controllers: [],
   providers: [],
