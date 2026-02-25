@@ -19,7 +19,7 @@ import { ProductController } from './infrastructure/ProductController';
  * Configura la inyección de dependencias siguiendo principios hexagonales
  */
 @Module({
-  imports: [],
+  imports: [], // Ya no necesita ShopUsersModule porque está disponible globalmente
   controllers: [ProductController],
   providers: [
     // Servicios de infraestructura

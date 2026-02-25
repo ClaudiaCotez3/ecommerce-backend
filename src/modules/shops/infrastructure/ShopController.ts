@@ -3,6 +3,8 @@ import {
   Post, 
   Get, 
   Body, 
+  Param,
+  ParseIntPipe,
   UseGuards, 
   Request,
   HttpCode,
@@ -11,6 +13,7 @@ import {
 import type { CreateShopInput } from '../application/CreateShop';
 import { CreateShop } from '../application/CreateShop';
 import { GetShopsByOwner } from '../application/GetShopsByOwner';
+import { GetShopById } from '../application/GetShopById';
 import { AuthGuard } from './AuthGuard';
 import type { AuthenticatedRequest } from './AuthGuard';
 
@@ -33,6 +36,7 @@ export class ShopController {
   constructor(
     private readonly createShop: CreateShop,
     private readonly getShopsByOwner: GetShopsByOwner,
+    private readonly getShopById: GetShopById,
   ) {}
 
   /**
@@ -94,5 +98,42 @@ export class ShopController {
       })),
       total: shops.length,
     };
+  }
+
+  /**
+   * GET /api/shops/:id
+   * Obtiene una tienda específica por ID
+   */
+  @Get(':id')
+  async getShopDetails(
+    @Param('id', ParseIntPipe) shopId: number,
+    @Request() request: AuthenticatedRequest,
+  ) {
+    try {
+      const shop = await this.getShopById.execute({
+        shopId,
+        userId: request.user.id,
+      });
+
+      return {
+        success: true,
+        message: 'Tienda obtenida exitosamente',
+        data: {
+          id: shop.id,
+          name: shop.name,
+          slug: shop.slug,
+          description: shop.description,
+          currency: shop.currency,
+          status: shop.status,
+          ownerId: shop.ownerId,
+          createdAt: shop.createdAt,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
   }
 }

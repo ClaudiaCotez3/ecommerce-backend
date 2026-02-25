@@ -44,6 +44,12 @@ export interface ShopUserRepository {
    * Elimina una membresía (remover usuario de shop)
    */
   removeMembership(userId: string, shopId: number): Promise<void>;
+
+  /**
+   * Busca una membresía con información detallada del rol
+   * Usado para verificaciones de autorización
+   */
+  findMembershipWithRole(userId: string, shopId: number): Promise<MembershipWithRole | null>;
 }
 
 /**
@@ -55,4 +61,16 @@ export interface ShopMembershipWithDetails {
   userName: string;
   roleName: string;
   shopName: string;
+}
+
+/**
+ * DTO para verificaciones de autorización
+ */
+export interface MembershipWithRole {
+  membership: ShopMembership;
+  role: {
+    id: number;
+    name: string;
+    description: string | null;
+  };
 }

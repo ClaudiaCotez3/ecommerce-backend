@@ -3,6 +3,7 @@ import {
   Post, 
   Get, 
   Patch,
+  Put,
   Body, 
   Param,
   Query,
@@ -22,6 +23,10 @@ import type { ChangeProductStatusInput } from '../application/ChangeProductStatu
 import { ChangeProductStatus } from '../application/ChangeProductStatus';
 import { AuthGuard } from '../../shops/infrastructure/AuthGuard';
 import type { AuthenticatedRequest } from '../../shops/infrastructure/AuthGuard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { ShopContext } from '../../../common/decorators/shop-context.decorator';
+import { CurrentUser, type CurrentUserData } from '../../../common/decorators/current-user.decorator';
 
 /**
  * DTO para validar datos de entrada - Crear Producto
@@ -66,16 +71,19 @@ export class ProductController {
   /**
    * POST /api/shops/:shopId/products
    * Crea un nuevo producto para la tienda específica
+   * Solo admins, owners y managers pueden crear productos
    */
   @Post('shops/:shopId/products')
+  @UseGuards(RolesGuard)
+  @Roles('owner', 'admin', 'manager')
+  @ShopContext()
   @HttpCode(HttpStatus.CREATED)
   async createNewProduct(
     @Param('shopId', ParseIntPipe) shopId: number,
     @Body() createProductDto: CreateProductDto,
-    @Request() request: AuthenticatedRequest,
+    @CurrentUser() currentUser: CurrentUserData,
   ) {
-    // TODO: Aquí deberías validar que el usuario tenga permisos sobre la shop
-    // Por simplicidad, asumimos que está autenticado
+    console.log('🎯 Creando producto - Usuario:', currentUser.id, 'Tienda:', shopId);
     
     const input: CreateProductInput = {
       shopId,
@@ -104,14 +112,20 @@ export class ProductController {
   /**
    * PATCH /api/shops/:shopId/products/:productId
    * Actualiza un producto específico de la tienda
+   * Solo admins, owners y managers pueden actualizar productos
    */
   @Patch('shops/:shopId/products/:productId')
+  @UseGuards(RolesGuard)
+  @Roles('owner', 'admin', 'manager')
+  @ShopContext()
   async updateExistingProduct(
     @Param('shopId', ParseIntPipe) shopId: number,
     @Param('productId', ParseIntPipe) productId: number,
     @Body() updateProductDto: UpdateProductDto,
-    @Request() request: AuthenticatedRequest,
+    @CurrentUser() currentUser: CurrentUserData,
   ) {
+    console.log('🔧 Actualizando producto - Usuario:', currentUser.id, 'Producto:', productId);
+    
     const input: UpdateProductInput = {
       productId,
       shopId,
@@ -139,18 +153,67 @@ export class ProductController {
   }
 
   /**
+   * PUT /api/shops/:shopId/products/:productId
+   * Actualiza completamente un producto específico de la tienda
+   * Solo admins, owners y managers pueden actualizar productos
+   */
+  @Put('shops/:shopId/products/:productId')
+  @UseGuards(RolesGuard)
+  @Roles('owner', 'admin', 'manager')
+  @ShopContext()
+  async replaceProduct(
+    @Param('shopId', ParseIntPipe) shopId: number,
+    @Param('productId', ParseIntPipe) productId: number,
+    @Body() updateProductDto: UpdateProductDto,
+    @CurrentUser() currentUser: CurrentUserData,
+  ) {
+    console.log('🔄 Reemplazando producto (PUT) - Usuario:', currentUser.id, 'Producto:', productId);
+    
+    const input: UpdateProductInput = {
+      productId,
+      shopId,
+      name: updateProductDto.name,
+      description: updateProductDto.description,
+      basePrice: updateProductDto.basePrice,
+      status: updateProductDto.status,
+    };
+
+    const product = await this.updateProduct.execute(input);
+
+    return {
+      success: true,
+      message: 'Producto actualizado completamente',
+      data: {
+        id: product.id,
+        shopId: product.shopId,
+        name: product.name,
+        description: product.description,
+        basePrice: product.basePrice,
+        status: product.status,
+        createdAt: product.createdAt,
+      },
+    };
+  }
+
+  /**
    * GET /api/shops/:shopId/products
    * Obtiene todos los productos de una tienda
+   * Todos los miembros pueden ver productos (incluyendo viewers)
    */
   @Get('shops/:shopId/products')
+  @UseGuards(RolesGuard)
+  @Roles('owner', 'admin', 'manager', 'employee', 'viewer')
+  @ShopContext()
   async getShopProducts(
     @Param('shopId', ParseIntPipe) shopId: number,
-    @Request() request: AuthenticatedRequest,
+    @CurrentUser() currentUser: CurrentUserData,
     @Query('status') status?: string,
     @Query('search') searchTerm?: string,
     @Query('limit') limitStr?: string,
     @Query('offset') offsetStr?: string,
   ) {
+    console.log('👀 Consultando productos - Usuario:', currentUser.id, 'Tienda:', shopId);
+    
     const limit = limitStr ? parseInt(limitStr, 10) : undefined;
     const offset = offsetStr ? parseInt(offsetStr, 10) : undefined;
 

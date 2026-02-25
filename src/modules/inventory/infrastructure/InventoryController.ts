@@ -4,6 +4,7 @@ import {
   Patch,
   Body, 
   Param,
+  Inject,
   UseGuards, 
   Request,
   HttpCode,
@@ -18,6 +19,12 @@ import type { GetInventoryByVariantInput } from '../application/GetInventoryByVa
 import { GetInventoryByVariant } from '../application/GetInventoryByVariant';
 import { AuthGuard } from '../../shops/infrastructure/AuthGuard';
 import type { AuthenticatedRequest } from '../../shops/infrastructure/AuthGuard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { ShopContext } from '../../../common/decorators/shop-context.decorator';
+import { CurrentUser, type CurrentUserData } from '../../../common/decorators/current-user.decorator';
+import { PrismaService } from '../../auth/infrastructure/prisma.service';
+import type { ShopUserRepository } from '../../shop-users/domain/ShopUserRepository';
 
 /**
  * DTO para actualizar stock
@@ -46,18 +53,49 @@ export class InventoryController {
     private readonly updateStock: UpdateStock,
     private readonly adjustStock: AdjustStock,
     private readonly getInventoryByVariant: GetInventoryByVariant,
+    private readonly prisma: PrismaService,
+    @Inject('ShopUserRepository') private readonly shopUserRepository: ShopUserRepository,
   ) {}
 
   /**
-   * GET /api/variants/:variantId/inventory
+   * GET /api/shops/:shopId/variants/:variantId/inventory
    * Obtiene el inventario de una variante específica
    */
-  @Get('variants/:variantId/inventory')
+  @Get('shops/:shopId/variants/:variantId/inventory')
   async getVariantInventory(
+    @Param('shopId', ParseIntPipe) shopId: number,
     @Param('variantId', ParseIntPipe) variantId: number,
-    @Request() request: AuthenticatedRequest,
+    @CurrentUser() currentUser: CurrentUserData,
   ) {
-    // TODO: Validar permisos sobre la variante/shop
+    // Verificar que la variante pertenece a la tienda especificada
+    const variant = await this.prisma.productVariant.findFirst({
+      where: { 
+        id: variantId,
+        product: {
+          shopId: shopId
+        }
+      }
+    });
+
+    if (!variant) {
+      return {
+        success: false,
+        message: 'Variante no encontrada en esta tienda'
+      };
+    }
+
+    // Verificar permisos en la tienda (todos los miembros pueden ver inventario)
+    const membership = await this.shopUserRepository.findMembershipWithRole(
+      currentUser.id,
+      shopId
+    );
+
+    if (!membership) {
+      return {
+        success: false,
+        message: 'No tienes acceso a esta tienda'
+      };
+    }
     
     const input: GetInventoryByVariantInput = { variantId };
     const inventory = await this.getInventoryByVariant.execute(input);
@@ -87,16 +125,56 @@ export class InventoryController {
   }
 
   /**
-   * PATCH /api/variants/:variantId/stock
+   * PATCH /api/shops/:shopId/variants/:variantId/stock
    * Actualiza la cantidad de stock de una variante
+   * Solo owners, admins y managers pueden actualizar stock
    */
-  @Patch('variants/:variantId/stock')
+  @Patch('shops/:shopId/variants/:variantId/stock')
   async updateVariantStock(
+    @Param('shopId', ParseIntPipe) shopId: number,
     @Param('variantId', ParseIntPipe) variantId: number,
     @Body() updateStockDto: UpdateStockDto,
-    @Request() request: AuthenticatedRequest,
+    @CurrentUser() currentUser: CurrentUserData,
   ) {
-    // TODO: Validar permisos sobre la variante/shop
+    console.log('📦 Actualizando stock - Usuario:', currentUser.id, 'Variante:', variantId, 'Tienda:', shopId);
+    
+    // Verificar que la variante pertenece a la tienda especificada
+    const variant = await this.prisma.productVariant.findFirst({
+      where: { 
+        id: variantId,
+        product: {
+          shopId: shopId
+        }
+      }
+    });
+
+    if (!variant) {
+      return {
+        success: false,
+        message: 'Variante no encontrada en esta tienda'
+      };
+    }
+
+    // Verificar permisos en la tienda
+    const membership = await this.shopUserRepository.findMembershipWithRole(
+      currentUser.id,
+      shopId
+    );
+
+    if (!membership) {
+      return {
+        success: false,
+        message: 'No tienes acceso a esta tienda'
+      };
+    }
+
+    const allowedRoles = ['owner', 'admin', 'manager'];
+    if (!allowedRoles.includes(membership.role.name.toLowerCase())) {
+      return {
+        success: false,
+        message: `Necesitas ser owner, admin o manager. Tu rol actual: ${membership.role.name}`
+      };
+    }
     
     const input: UpdateStockInput = {
       variantId,
@@ -123,16 +201,56 @@ export class InventoryController {
   }
 
   /**
-   * PATCH /api/variants/:variantId/stock/adjust
+   * PATCH /api/shops/:shopId/variants/:variantId/stock/adjust
    * Ajusta el stock (incremento o decremento) de una variante
+   * Solo owners y admins pueden hacer ajustes de stock
    */
-  @Patch('variants/:variantId/stock/adjust')
+  @Patch('shops/:shopId/variants/:variantId/stock/adjust')
   async adjustVariantStock(
+    @Param('shopId', ParseIntPipe) shopId: number,
     @Param('variantId', ParseIntPipe) variantId: number,
     @Body() adjustStockDto: AdjustStockDto,
-    @Request() request: AuthenticatedRequest,
+    @CurrentUser() currentUser: CurrentUserData,
   ) {
-    // TODO: Validar permisos sobre la variante/shop
+    console.log('🔧 Ajustando stock - Usuario:', currentUser.id, 'Variante:', variantId, 'Tienda:', shopId);
+    
+    // Verificar que la variante pertenece a la tienda especificada
+    const variant = await this.prisma.productVariant.findFirst({
+      where: { 
+        id: variantId,
+        product: {
+          shopId: shopId
+        }
+      }
+    });
+
+    if (!variant) {
+      return {
+        success: false,
+        message: 'Variante no encontrada en esta tienda'
+      };
+    }
+
+    // Verificar permisos en la tienda
+    const membership = await this.shopUserRepository.findMembershipWithRole(
+      currentUser.id,
+      shopId
+    );
+
+    if (!membership) {
+      return {
+        success: false,
+        message: 'No tienes acceso a esta tienda'
+      };
+    }
+
+    const allowedRoles = ['owner', 'admin'];
+    if (!allowedRoles.includes(membership.role.name.toLowerCase())) {
+      return {
+        success: false,
+        message: `Solo owners y admins pueden ajustar stock. Tu rol actual: ${membership.role.name}`
+      };
+    }
     
     const input: AdjustStockInput = {
       variantId,

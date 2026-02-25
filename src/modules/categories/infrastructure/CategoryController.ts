@@ -18,6 +18,10 @@ import type { GetCategoriesByShopInput } from '../application/GetCategoriesBySho
 import { GetCategoriesByShop } from '../application/GetCategoriesByShop';
 import { AuthGuard } from '../../shops/infrastructure/AuthGuard';
 import type { AuthenticatedRequest } from '../../shops/infrastructure/AuthGuard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { ShopContext } from '../../../common/decorators/shop-context.decorator';
+import { CurrentUser, type CurrentUserData } from '../../../common/decorators/current-user.decorator';
 
 /**
  * DTO para validar datos de entrada - Crear Categoría
@@ -43,16 +47,19 @@ export class CategoryController {
   /**
    * POST /api/shops/:shopId/categories
    * Crea una nueva categoría para la tienda específica
+   * Solo owners, admins y managers pueden crear categorías
    */
   @Post('shops/:shopId/categories')
+  @UseGuards(RolesGuard)
+  @Roles('owner', 'admin', 'manager')
+  @ShopContext()
   @HttpCode(HttpStatus.CREATED)
   async createNewCategory(
     @Param('shopId', ParseIntPipe) shopId: number,
     @Body() createCategoryDto: CreateCategoryDto,
-    @Request() request: AuthenticatedRequest,
+    @CurrentUser() currentUser: CurrentUserData,
   ) {
-    // TODO: Aquí deberías validar que el usuario tenga permisos sobre la shop
-    // Por simplicidad, asumimos que está autenticado
+    console.log('📂 Creando categoría - Usuario:', currentUser.id, 'Tienda:', shopId);
     
     const input: CreateCategoryInput = {
       shopId,

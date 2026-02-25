@@ -6,6 +6,12 @@ export interface AuthenticatedRequest extends Request {
   user: {
     id: string;
     email: string;
+    name?: string;
+    shopMemberships?: Array<{
+      shopId: number;
+      roleId: number;
+      roleName: string;
+    }>;
   };
 }
 
@@ -53,6 +59,8 @@ export class AuthGuard implements CanActivate {
       request.user = {
         id: decoded.userId, // Cambiar de 'id' a 'userId'
         email: decoded.email,
+        name: decoded.name || decoded.firstName || 'Usuario',
+        // Los roles se cargarán on-demand por el RolesGuard cuando sea necesario
       };
 
       return true;

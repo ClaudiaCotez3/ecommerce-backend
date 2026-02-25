@@ -1,13 +1,16 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../auth/infrastructure/prisma.service';
+import { ShopUsersModule } from '../shop-users/shop-users.module';
 
 // Domain
 import type { ShopRepository } from './domain/ShopRepository';
 import type { SlugGenerator } from './domain/SlugGenerator';
+import type { ShopUserRepository } from '../shop-users/domain/ShopUserRepository';
 
 // Application
 import { CreateShop } from './application/CreateShop';
 import { GetShopsByOwner } from './application/GetShopsByOwner';
+import { GetShopById } from './application/GetShopById';
 
 // Infrastructure
 import { PrismaShopRepository } from './infrastructure/PrismaShopRepository';
@@ -19,7 +22,7 @@ import { ShopController } from './infrastructure/ShopController';
  * Configura la inyección de dependencias siguiendo principios hexagonales
  */
 @Module({
-  imports: [],
+  imports: [ShopUsersModule],
   controllers: [ShopController],
   providers: [
     // Servicios de infraestructura
@@ -56,11 +59,23 @@ import { ShopController } from './infrastructure/ShopController';
       },
       inject: ['ShopRepository'],
     },
+    
+    {
+      provide: GetShopById,
+      useFactory: (
+        shopRepository: ShopRepository,
+        shopUserRepository: ShopUserRepository,
+      ) => {
+        return new GetShopById(shopRepository, shopUserRepository);
+      },
+      inject: ['ShopRepository', 'ShopUserRepository'],
+    },
   ],
   exports: [
     'ShopRepository',
     CreateShop,
     GetShopsByOwner,
+    GetShopById,
   ],
 })
 export class ShopsModule {}

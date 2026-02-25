@@ -9,11 +9,15 @@ import type { RoleRepository } from './domain/Role';
 import { AssignUserToShop } from './application/AssignUserToShop';
 import { ChangeUserRoleInShop } from './application/ChangeUserRoleInShop';
 import { ListShopMembers } from './application/ListShopMembers';
+import { AssignRoleToUser } from './application/AssignRoleToUser';
+import { CheckUserPermissions } from './application/CheckUserPermissions';
 
 // Infrastructure
 import { PrismaShopUserRepository } from './infrastructure/PrismaShopUserRepository';
 import { PrismaRoleRepository } from './infrastructure/PrismaRoleRepository';
 import { ShopUsersController } from './infrastructure/ShopUsersController';
+import { ShopUserController } from './infrastructure/ShopUserController';
+import { RolesController } from './infrastructure/RolesController';
 
 /**
  * Módulo de ShopUsers
@@ -22,7 +26,7 @@ import { ShopUsersController } from './infrastructure/ShopUsersController';
  */
 @Module({
   imports: [],
-  controllers: [ShopUsersController],
+  controllers: [ShopUsersController, ShopUserController, RolesController],
   providers: [
     // Servicios de infraestructura
     PrismaService,
@@ -68,6 +72,23 @@ import { ShopUsersController } from './infrastructure/ShopUsersController';
       },
       inject: ['ShopUserRepository'],
     },
+
+    // Nuevos casos de uso para FASE 6
+    {
+      provide: AssignRoleToUser,
+      useFactory: (shopUserRepository: ShopUserRepository) => {
+        return new AssignRoleToUser(shopUserRepository);
+      },
+      inject: ['ShopUserRepository'],
+    },
+
+    {
+      provide: CheckUserPermissions,
+      useFactory: (shopUserRepository: ShopUserRepository) => {
+        return new CheckUserPermissions(shopUserRepository);
+      },
+      inject: ['ShopUserRepository'],
+    },
   ],
   exports: [
     'ShopUserRepository',
@@ -75,6 +96,8 @@ import { ShopUsersController } from './infrastructure/ShopUsersController';
     AssignUserToShop,
     ChangeUserRoleInShop,
     ListShopMembers,
+    AssignRoleToUser,
+    CheckUserPermissions,
   ],
 })
 export class ShopUsersModule {}

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthController } from './infrastructure/AuthController';
+import { UsersController } from './infrastructure/UsersController';
 import { RegisterUser } from './application/RegisterUser';
 import { LoginUser } from './application/LoginUser';
 import { PrismaUserRepository } from './infrastructure/PrismaUserRepository';
@@ -14,7 +15,7 @@ import type { TokenService } from './domain/TokenService';
 import type { IdGenerator } from './domain/IdGenerator';
 
 @Module({
-  controllers: [AuthController],
+  controllers: [AuthController, UsersController],
   providers: [
     // Prisma
     PrismaService,

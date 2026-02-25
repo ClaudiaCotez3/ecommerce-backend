@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../auth/infrastructure/prisma.service';
+import { ShopUsersModule } from '../shop-users/shop-users.module';
 
 // Domain
 import type { InventoryRepository } from './domain/InventoryRepository';
@@ -18,7 +19,7 @@ import { InventoryController } from './infrastructure/InventoryController';
  * Configura la inyección de dependencias siguiendo principios hexagonales
  */
 @Module({
-  imports: [],
+  imports: [ShopUsersModule],
   controllers: [InventoryController],
   providers: [
     // Servicios de infraestructura

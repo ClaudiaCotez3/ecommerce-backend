@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../auth/infrastructure/prisma.service';
+import { ShopUsersModule } from '../shop-users/shop-users.module';
 
 // Domain
 import type { CategoryRepository } from './domain/CategoryRepository';
@@ -18,7 +19,7 @@ import { CategoryController } from './infrastructure/CategoryController';
  * Configura la inyección de dependencias siguiendo principios hexagonales
  */
 @Module({
-  imports: [],
+  imports: [ShopUsersModule],
   controllers: [CategoryController],
   providers: [
     // Servicios de infraestructura

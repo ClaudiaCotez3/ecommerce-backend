@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../auth/infrastructure/prisma.service';
 import { ShopMembership } from '../domain/ShopMembership';
-import { ShopUserRepository, ShopMembershipWithDetails } from '../domain/ShopUserRepository';
+import { ShopUserRepository, ShopMembershipWithDetails, MembershipWithRole } from '../domain/ShopUserRepository';
 
 /**
  * Implementación del repositorio de ShopUser usando Prisma
@@ -169,6 +169,39 @@ export class PrismaShopUserRepository implements ShopUserRepository {
         },
       },
     });
+  }
+
+  async findMembershipWithRole(userId: string, shopId: number): Promise<MembershipWithRole | null> {
+    const membershipWithRole = await this.prisma.shopUser.findUnique({
+      where: {
+        userId_shopId: {
+          userId,
+          shopId,
+        },
+      },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+      },
+    });
+
+    if (!membershipWithRole) {
+      return null;
+    }
+
+    return {
+      membership: this.mapToDomainEntity(membershipWithRole),
+      role: {
+        id: membershipWithRole.role.id,
+        name: membershipWithRole.role.name,
+        description: membershipWithRole.role.description,
+      },
+    };
   }
 
   /**
